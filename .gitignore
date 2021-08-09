@@ -1,0 +1,14 @@
+### Gradle ###
+.gradle/
+.gradle
+build/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+logs/
+
+lombok.config
