@@ -11,8 +11,8 @@ buildscript {
     rootProject.extra["databasePort"] = env("JDBC_POST", "3306")
     rootProject.extra["databaseUsername"] = env("JDBC_USERNAME", "root")
     rootProject.extra["databasePassword"] = env("JDBC_PASSWORD", "1234")
-    rootProject.extra["databaseName"] = env("JDBC_DATABASE", "react-spring-messenger")
-    rootProject.extra["databaseUrl"] = "jdbc:postgresql://${project.extra["databaseHost"]}:${project.extra["databasePort"]}/${project.extra["databaseName"]}"
+    rootProject.extra["databaseName"] = env("JDBC_DATABASE", "react_spring_messenger")
+    rootProject.extra["databaseUrl"] = "jdbc:mariadb://${project.extra["databaseHost"]}:${project.extra["databasePort"]}/${project.extra["databaseName"]}"
     rootProject.extra["profile"] = if (project.hasProperty("profile"))
         project.property("profile") else "local"
 
@@ -27,8 +27,13 @@ buildscript {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${rootProject.extra["springBootVersion"]}")
         classpath("io.spring.gradle:dependency-management-plugin:1.0.11.RELEASE")
         classpath("nu.studer:gradle-jooq-plugin:6.0")
-        classpath("gradle.plugin.org.flywaydb:gradle-plugin-publishing:7.11.4")
+        classpath("gradle.plugin.org.flywaydb:gradle-plugin-publishing:7.12.1")
     }
+}
+
+plugins {
+    id("org.flywaydb.flyway") version "7.12.1"
+    id("nu.studer.jooq") version "6.0"
 }
 
 allprojects {
@@ -42,11 +47,6 @@ subprojects {
     apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
 
-//    sourceCompatibility = JavaVersion.VERSION_1_8
-//    targetCompatibility = JavaVersion.VERSION_1_8
-//    compileJava.options.encoding = "UTF-8"
-//    compileTestJava.options.encoding = "UTF-8"
-
     repositories {
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
@@ -58,25 +58,7 @@ subprojects {
         "compileOnly" { extendsFrom(configurations["annotationProcessor"]) }
     }
 
-//    sourceSets {
-//        main {
-//            resources {
-//                srcDirs(listOf("src/main/resources", "src/main/resources-${profile}"))
-//            }
-//        }
-//    }
-
-//    test {
-//        useJUnitPlatform()
-//    }
-
     dependencies {
-//        "runtimeOnly"("org.springframework.boot:spring-boot-devtools")
-//        developmentOnly 'org.springframework.boot:spring-boot-devtools'
-//        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-        "testImplementation"("org.springframework.boot:spring-boot-starter-test") {
-            exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
-        }
         "implementation"("org.jetbrains.kotlin:kotlin-reflect")
         "implementation"("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core")
@@ -85,14 +67,87 @@ subprojects {
     }
 }
 
-project(":api-server") {
-//    tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootJar") {
-//        enabled = true
-//    }
-//    jar.enabled = false
+project(":persistence-model") {
+    val jar: Jar by tasks
+    jar.enabled = true
+
+    apply { plugin("org.flywaydb.flyway") }
+    flyway {
+        url = rootProject.extra["databaseUrl"] as String
+        user = rootProject.extra["databaseUsername"] as String
+        password = rootProject.extra["databasePassword"] as String
+    }
+
+    apply { plugin("nu.studer.jooq") }
+    jooq {
+        configurations {
+            create("main") {  // name of the jOOQ configuration
+                jooqConfiguration.apply {
+                    logging = org.jooq.meta.jaxb.Logging.WARN
+                    jdbc.apply {
+                        driver = "org.mariadb.jdbc.Driver"
+                        url = rootProject.extra["databaseUrl"] as String
+                        user = rootProject.extra["databaseUsername"] as String
+                        password = rootProject.extra["databasePassword"] as String
+                        properties.add(org.jooq.meta.jaxb.Property().withKey("ssl").withValue("true"))
+                    }
+                    generator.apply {
+                        name = "org.jooq.codegen.DefaultGenerator"
+                        database.apply {
+                            name = "org.jooq.meta.mariadb.MariaDBDatabase"
+                            inputSchema = rootProject.extra["databaseName"] as String
+                            forcedTypes.addAll(
+                                arrayOf(
+                                    org.jooq.meta.jaxb.ForcedType()
+                                        .withName("BOOLEAN")
+                                        .withIncludeExpression(".*")
+                                        .withIncludeTypes("(?i:TINYINT)\\(1\\)"),
+                                ).toList()
+                            )
+                        }
+                        generate.apply {
+                            isRelations = true
+                            isDeprecated = false
+                            isRecords = true
+                            isPojos = true
+                            isFluentSetters = true
+                            isJavaTimeTypes = true
+                        }
+                        target.apply {
+                            packageName = "org.tinywind.messenger.jooq"
+                        }
+                        strategy.name = "org.jooq.codegen.DefaultGeneratorStrategy"
+                    }
+                }
+            }
+        }
+    }
 
     dependencies {
+        "implementation"("org.jooq:jooq")
+        "jooqGenerator"("org.mariadb.jdbc:mariadb-java-client:${rootProject.extra["mariadbJavaClientVersion"]}")
+        "implementation"("org.mariadb.jdbc:mariadb-java-client:${rootProject.extra["mariadbJavaClientVersion"]}")
+    }
+}
+
+project(":api-server") {
+    val bootJar: Jar by tasks
+    bootJar.enabled = true
+
+    val jar: Jar by tasks
+    jar.enabled = false
+
+    dependencies {
+//        "runtimeOnly"("org.springframework.boot:spring-boot-devtools")
+//        developmentOnly 'org.springframework.boot:spring-boot-devtools'
+//        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+        "testImplementation"("org.springframework.boot:spring-boot-starter-test") {
+            exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+        }
         "implementation"("org.springframework.boot:spring-boot-starter-web:${rootProject.extra["springBootVersion"]}")
+        "implementation"("com.graphql-java:graphql-spring-boot-starter:5.0.2")
+        "implementation"("com.graphql-java:graphiql-spring-boot-starter:5.0.2")
+        "implementation"("com.graphql-java:graphql-java-tools:5.2.4")
     }
 }
 
