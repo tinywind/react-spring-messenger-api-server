@@ -58,12 +58,14 @@ subprojects {
         "compileOnly" { extendsFrom(configurations["annotationProcessor"]) }
     }
 
+    tasks.withType<Test> { useJUnitPlatform() }
+
     dependencies {
         "implementation"("org.jetbrains.kotlin:kotlin-reflect")
         "implementation"("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core")
         "testImplementation"("org.jetbrains.kotlin:kotlin-test")
-        "testImplementation"("org.jetbrains.kotlin:kotlin-test-junit")
+        // "testImplementation"("org.jetbrains.kotlin:kotlin-test-junit")
     }
 }
 
@@ -102,6 +104,10 @@ project(":persistence-model") {
                                         .withName("BOOLEAN")
                                         .withIncludeExpression(".*")
                                         .withIncludeTypes("(?i:TINYINT)\\(1\\)"),
+                                    org.jooq.meta.jaxb.ForcedType()
+                                        .withName("UUID")
+                                        .withIncludeExpression(".*")
+                                        .withIncludeTypes("(?i:BINARY)\\(16\\)"),
                                 ).toList()
                             )
                         }
@@ -124,7 +130,7 @@ project(":persistence-model") {
     }
 
     dependencies {
-        "implementation"("org.jooq:jooq")
+        "api"("org.jooq:jooq")
         "jooqGenerator"("org.mariadb.jdbc:mariadb-java-client:${rootProject.extra["mariadbJavaClientVersion"]}")
         "implementation"("org.mariadb.jdbc:mariadb-java-client:${rootProject.extra["mariadbJavaClientVersion"]}")
     }
@@ -138,16 +144,16 @@ project(":api-server") {
     jar.enabled = false
 
     dependencies {
-//        "runtimeOnly"("org.springframework.boot:spring-boot-devtools")
-//        developmentOnly 'org.springframework.boot:spring-boot-devtools'
-//        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+        "implementation"(project(":persistence-model"))
+
+        "runtimeOnly"("org.springframework.boot:spring-boot-devtools")
+        "annotationProcessor"("org.springframework.boot:spring-boot-configuration-processor")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test") {
             exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
         }
         "implementation"("org.springframework.boot:spring-boot-starter-web:${rootProject.extra["springBootVersion"]}")
-        "implementation"("com.graphql-java:graphql-spring-boot-starter:5.0.2")
-        "implementation"("com.graphql-java:graphiql-spring-boot-starter:5.0.2")
-        "implementation"("com.graphql-java:graphql-java-tools:5.2.4")
+        "implementation"("org.springframework.boot:spring-boot-starter-jooq:${rootProject.extra["springBootVersion"]}")
+        "implementation"("com.graphql-java-kickstart:graphql-spring-boot-starter:11.1.0")
+        // "testImplementation"("com.graphql-java-kickstart:graphql-spring-boot-starter-test:11.1.0")
     }
 }
-

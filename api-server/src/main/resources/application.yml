@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:mariadb://${JDBC_HOST:localhost}:${JDBC_POST:3306}/${JDBC_DATABASE:react_spring_messenger}
+    username: ${JDBC_USERNAME:root}
+    password: ${JDBC_PASSWORD:1234}
+    type: org.springframework.jdbc.datasource.DriverManagerDataSource
+
+graphql:
+  servlet:
+    # Sets if GraphQL servlet should be created and exposed. If not specified defaults to "true".
+    enabled: true
+    # Sets the path where GraphQL servlet will be exposed. If not specified defaults to "/graphql"
+    mapping: /graphql
+    cors-enabled: true
+    cors:
+      allowed-origins: http://some.domain.com
+      allowed-methods: GET, HEAD, POST
+    # if you want to @ExceptionHandler annotation for custom GraphQLErrors
+    exception-handlers-enabled: true
+    context-setting: PER_REQUEST_WITH_INSTRUMENTATION
+    # Sets if asynchronous operations are supported for GraphQL requests. If not specified defaults to true.
+    async-mode-enabled: true
+  tools:
+    schema-location-pattern: "**/*.graphqls"
+    # Enable or disable the introspection query. Disabling it puts your server in contravention of the GraphQL
+    # specification and expectations of most clients, so use this option with caution
+    introspection-enabled: true
+
+debug: true
