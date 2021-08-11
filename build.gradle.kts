@@ -34,6 +34,7 @@ buildscript {
 plugins {
     id("org.flywaydb.flyway") version "7.12.1"
     id("nu.studer.jooq") version "6.0"
+    id("io.spring.dependency-management") version "1.0.11.RELEASE"
 }
 
 allprojects {
@@ -42,7 +43,7 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "kotlin")
+    apply { plugin("kotlin") }
     apply(plugin = "idea")
     apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
@@ -151,9 +152,12 @@ project(":api-server") {
         "testImplementation"("org.springframework.boot:spring-boot-starter-test") {
             exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
         }
-        "implementation"("org.springframework.boot:spring-boot-starter-web:${rootProject.extra["springBootVersion"]}")
+        "implementation"("org.springframework.boot:spring-boot-starter-webflux:${rootProject.extra["springBootVersion"]}")
         "implementation"("org.springframework.boot:spring-boot-starter-jooq:${rootProject.extra["springBootVersion"]}")
         "implementation"("com.graphql-java-kickstart:graphql-spring-boot-starter:11.1.0")
+        "implementation"("com.graphql-java-kickstart:graphiql-spring-boot-starter:11.1.0")
+        "implementation"("com.graphql-java-kickstart:voyager-spring-boot-starter:11.1.0")
         // "testImplementation"("com.graphql-java-kickstart:graphql-spring-boot-starter-test:11.1.0")
+        "testImplementation"("com.graphql-java-kickstart:graphql-webclient-spring-boot-starter:1.0.0")
     }
 }

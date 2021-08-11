@@ -1,0 +1,12 @@
+type Query {
+    test: String!
+    noResponse: String
+    echo(value: String!): String!
+    simple(id: ID!): Simple!
+    list: [Simple!]!
+    header(name: String!): String
+}
+
+type Simple {
+    id: ID!
+}
